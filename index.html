@@ -445,7 +445,6 @@
         tg.expand();
         tg.ready();
 
-        // Локальное хранилище
         let localSubs = JSON.parse(localStorage.getItem('subscriptions') || '[]');
         let localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
         let localHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
@@ -494,10 +493,8 @@
             localSubs.push(newSub);
             localStorage.setItem('subscriptions', JSON.stringify(localSubs));
 
-            // Отправляем боту для синхронизации
             tg.sendData(JSON.stringify({ action: 'save', ...newSub }));
             
-            // Очищаем форму
             document.getElementById('keyword').value = '';
             document.getElementById('region').value = '';
             document.getElementById('min_price').value = '';
@@ -608,7 +605,6 @@
             const limit = parseInt(document.getElementById('search_limit').value) || 5;
             if (limit < 1 || limit > 50) { showToast("Введите число от 1 до 50"); return; }
             
-            // Сохраняем в историю
             const searchRecord = {
                 date: new Date().toISOString(),
                 limit,
@@ -619,16 +615,6 @@
             
             tg.sendData(JSON.stringify({ action: 'search', limit }));
             showToast("🔍 Поиск запущен! Результаты в чате");
-        }
-
-        function addToFavorites(zakupka) {
-            if (!localFavs.find(f => f.reg_number === zakupka.reg_number)) {
-                localFavs.unshift(zakupka);
-                localStorage.setItem('favorites', JSON.stringify(localFavs));
-                showToast("⭐ Добавлено в избранное!");
-            } else {
-                showToast("Уже в избранном");
-            }
         }
 
         function removeFromFavorites(regNumber) {
@@ -685,7 +671,6 @@
             return map[time] || '🌅🌆 2 раза';
         }
 
-        // Инициализация
         renderSubscriptions();
         renderFavorites();
         renderHistory();
