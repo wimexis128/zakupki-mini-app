@@ -1,679 +1,346 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Мониторинг Закупок</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        :root {
-            --bg: var(--tg-theme-bg-color, #fff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            --text: var(--tg-theme-text-color, #000);
-            --hint: var(--tg-theme-hint-color, #999);
-            --button: var(--tg-theme-button-color, #3390ec);
-            --button-text: var(--tg-theme-button-text-color, #fff);
-            --destructive: #ff3b30;
-            --success: #34c759;
-            --warning: #ff9500;
-            --safe-top: env(safe-area-inset-top, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-        }
-        html, body { width: 100%; min-height: 100vh; overflow-x: hidden; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-            background: var(--secondary-bg);
-            color: var(--text);
-            padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
-            -webkit-font-smoothing: antialiased;
-        }
-        .header { text-align: center; margin-bottom: 20px; padding-top: 8px; }
-        .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-        .header p { font-size: 14px; color: var(--hint); margin-top: 6px; }
-
-        .tabs {
-            display: flex;
-            background: var(--bg);
-            border-radius: 12px;
-            padding: 4px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            overflow-x: auto;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px 8px;
-            text-align: center;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--hint);
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            min-width: 80px;
-        }
-        .tab.active {
-            background: var(--button);
-            color: var(--button-text);
-            box-shadow: 0 2px 6px rgba(51, 144, 236, 0.3);
-        }
-
-        .view { display: none; animation: fadeIn 0.25s ease; }
-        .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card {
-            background: var(--bg);
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        }
-        .form-group { margin-bottom: 14px; }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--hint);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 13px 14px;
-            border: 1px solid rgba(128,128,128,0.2);
-            border-radius: 12px;
-            font-size: 16px;
-            background: var(--secondary-bg);
-            color: var(--text);
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--button);
-            box-shadow: 0 0 0 3px rgba(51, 144, 236, 0.15);
-        }
-        .checkbox-group { display: flex; gap: 10px; }
-        .checkbox-item {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            background: var(--secondary-bg);
-            border-radius: 12px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-            font-size: 14px;
-            font-weight: 600;
-            min-height: 44px;
-        }
-        .checkbox-item.active {
-            border-color: var(--button);
-            background: rgba(51, 144, 236, 0.1);
-            color: var(--button);
-        }
-        .checkbox-item input { display: none; }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: var(--button);
-            color: var(--button-text);
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
-            margin-top: 6px;
-            min-height: 48px;
-        }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn-secondary { background: var(--secondary-bg); color: var(--text); }
-        .btn-danger {
-            background: rgba(255, 59, 48, 0.12);
-            color: var(--destructive);
-            width: auto;
-            padding: 8px 14px;
-            font-size: 13px;
-            margin: 0;
-            min-height: 36px;
-        }
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            font-size: 18px;
-            margin: 0;
-            min-height: 36px;
-        }
-
-        .sub-item {
-            background: var(--bg);
-            border-radius: 14px;
-            padding: 14px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-            border-left: 4px solid var(--button);
-        }
-        .sub-item.paused { border-left-color: var(--warning); opacity: 0.7; }
-        .sub-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-        .sub-keyword {
-            font-weight: 700;
-            font-size: 15px;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding-right: 8px;
-        }
-        .sub-actions { display: flex; gap: 6px; }
-        .sub-details {
-            font-size: 12px;
-            color: var(--hint);
-            line-height: 1.5;
-        }
-        .sub-status {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-top: 6px;
-        }
-        .sub-status.active { background: rgba(52, 199, 89, 0.15); color: var(--success); }
-        .sub-status.paused { background: rgba(255, 149, 0, 0.15); color: var(--warning); }
-
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--hint); }
-        .empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--bg);
-            border-radius: 20px 20px 0 0;
-            padding: 20px;
-            width: 100%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .modal-header h2 { font-size: 18px; font-weight: 700; }
-        .modal-close {
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: var(--secondary-bg);
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .fav-item, .history-item {
-            background: var(--bg);
-            border-radius: 14px;
-            padding: 14px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-        .fav-title, .history-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-        .fav-meta, .history-meta { font-size: 12px; color: var(--hint); line-height: 1.5; }
-        .fav-link, .history-link {
-            display: inline-block;
-            margin-top: 8px;
-            color: var(--button);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .search-controls { display: flex; gap: 10px; align-items: center; }
-        .search-controls input {
-            flex: 1;
-            padding: 13px;
-            border-radius: 12px;
-            border: 1px solid rgba(128,128,128,0.2);
-            background: var(--secondary-bg);
-            color: var(--text);
-            font-size: 16px;
-            text-align: center;
-        }
-        .search-controls .btn { width: auto; margin: 0; padding: 13px 20px; min-width: 100px; }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--success);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        .toast.show { opacity: 1; }
-
-        @media (max-width: 360px) {
-            .tab { font-size: 12px; padding: 9px 6px; }
-            .header h1 { font-size: 20px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Закупки·Радар</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--ink:#070d18;--bg:#0b1424;--s1:#101e33;--s2:#16283f;--s3:#1d3450;--line:#22385a;--line2:#2e4a73;--text:#eaf2ff;--muted:#8fa3c0;--dim:#5f7396;--cyan:#35e0ff;--teal:#14e0c8;--amber:#ffb224;--ok:#3ce97c;--danger:#ff4d6d;--info:#5ea2ff;--mag:#ff6bd6;--grad:linear-gradient(135deg,#35e0ff,#5ea2ff 45%,#ff6bd6);--r:16px;--safe-b:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;background-image:radial-gradient(1200px 500px at 85% -10%,rgba(53,224,255,.10),transparent 60%),radial-gradient(900px 420px at -10% 30%,rgba(255,107,214,.07),transparent 60%),radial-gradient(700px 500px at 50% 110%,rgba(20,224,200,.06),transparent 60%);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
+*{scrollbar-width:thin;scrollbar-color:var(--line2) var(--s1)}
+.app{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 16px calc(96px + var(--safe-b))}
+@media(min-width:900px){.app{padding-left:96px}}
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:14px 0 12px;background:linear-gradient(180deg,var(--bg) 70%,transparent);backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.radar{width:38px;height:38px;border-radius:50%;position:relative;flex:none;background:radial-gradient(circle,var(--s2),var(--s1));border:1px solid var(--line2);overflow:hidden}
+.radar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(53,224,255,.55),transparent 70deg,transparent 360deg);animation:sweep 3.2s linear infinite}
+.radar::after{content:"";position:absolute;inset:26%;border-radius:50%;border:1px solid var(--line2);box-shadow:0 0 0 6px rgba(53,224,255,.05)}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.brand h1{font-size:17px;font-weight:800;letter-spacing:.4px;white-space:nowrap}
+.brand h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--line2);background:var(--s1);color:var(--muted);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.chip.demo .dot{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+@keyframes pulse{50%{opacity:.4}}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#04101c;flex:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 18px}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:linear-gradient(160deg,var(--s1),var(--s2));border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);opacity:.7}
+.stat b{display:block;font-size:22px;font-weight:800;letter-spacing:-.5px}
+.stat span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.stat.c1 b{color:var(--cyan)}.stat.c2 b{color:var(--ok)}.stat.c3 b{color:var(--amber)}.stat.c4 b{color:var(--mag)}
+.rail{display:none}
+@media(min-width:900px){.rail{display:flex;flex-direction:column;gap:6px;position:fixed;left:calc(50% - 540px + 16px);top:90px;width:64px;z-index:40}.rail button{width:64px;height:56px;border-radius:14px;border:1px solid var(--line);background:var(--s1);color:var(--muted);font-size:20px;cursor:pointer;transition:.2s}.rail button.on{background:var(--s3);color:var(--cyan);border-color:var(--line2);box-shadow:0 0 16px rgba(53,224,255,.15)}}
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:60;display:flex;gap:4px;padding:8px 10px calc(8px + var(--safe-b));background:rgba(11,20,36,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+@media(min-width:900px){.tabbar{display:none}}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border:none;border-radius:12px;background:transparent;color:var(--dim);font-size:10px;font-weight:700;cursor:pointer;transition:.2s}
+.tabbar button i{font-style:normal;font-size:19px}
+.tabbar button.on{color:var(--cyan);background:rgba(53,224,255,.08)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.searchbox{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.searchbox input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px}
+select,input[type=text],input[type=number]{background:var(--s1);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:10px 12px;font-size:14px;outline:none}
+select:focus,input:focus{border-color:var(--cyan)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;color:#04101c;background:var(--grad)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--s2);color:var(--text);border:1px solid var(--line2)}
+.btn.danger{background:rgba(255,77,109,.14);color:var(--danger);border:1px solid rgba(255,77,109,.35)}
+.btn.sm{padding:7px 11px;font-size:12px;border-radius:10px}
+.btn.icon{width:36px;height:36px;padding:0;border-radius:10px}
+.view{display:none;animation:vin .3s ease}.view.on{display:block}
+@keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:linear-gradient(165deg,var(--s1),var(--s2));border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;transition:.2s;animation:vin .35s ease backwards}
+.card:hover{border-color:var(--line2)}
+.card.paused{opacity:.65;border-left:3px solid var(--amber)}
+.card.sel{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(53,224,255,.25)}
+.card .row1{display:flex;align-items:flex-start;gap:10px}
+.card .kw{flex:1;font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .acts{display:flex;gap:6px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;border:1px solid var(--line2);color:var(--muted);background:var(--s1)}
+.tag.law{color:var(--info);border-color:rgba(94,162,255,.4)}
+.tag.reg{color:var(--teal);border-color:rgba(20,224,200,.4)}
+.tag.price{color:var(--amber);border-color:rgba(255,178,36,.4)}
+.tag.time{color:var(--mag);border-color:rgba(255,107,214,.4)}
+.meta{font-size:12px;color:var(--muted)}
+.statusline{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;font-weight:700}
+.pill{padding:3px 9px;border-radius:999px}
+.pill.on{background:rgba(60,233,124,.12);color:var(--ok)}
+.pill.off{background:rgba(255,178,36,.12);color:var(--amber)}
+.check{width:20px;height:20px;accent-color:var(--cyan);cursor:pointer}
+.res .title{font-size:14px;font-weight:700;line-height:1.4;margin:6px 0}
+.res .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--muted);margin:8px 0}
+@media(max-width:480px){.res .grid{grid-template-columns:1fr}}
+.res .grid b{color:var(--text);font-weight:600}
+.deadline{font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px}
+.deadline.hot{background:rgba(255,77,109,.15);color:var(--danger)}
+.deadline.warm{background:rgba(255,178,36,.15);color:var(--amber)}
+.deadline.cool{background:rgba(60,233,124,.12);color:var(--ok)}
+.star{background:none;border:none;font-size:20px;cursor:pointer;filter:grayscale(1);transition:.2s}
+.star.on{filter:none;transform:scale(1.1)}
+a.link{color:var(--cyan);text-decoration:none;font-size:13px;font-weight:700}
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty .ico{font-size:44px;margin-bottom:12px;opacity:.7}
+.empty p{font-size:14px;line-height:1.6}
+.scrim{position:fixed;inset:0;background:rgba(4,8,16,.6);backdrop-filter:blur(3px);z-index:90;opacity:0;pointer-events:none;transition:.25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;z-index:100;background:var(--s1);border:1px solid var(--line2);overflow-y:auto;transition:transform .3s cubic-bezier(.2,.8,.2,1);padding:20px}
+@media(max-width:899px){.drawer{left:0;right:0;bottom:0;max-height:88vh;border-radius:20px 20px 0 0;transform:translateY(105%)}.drawer.on{transform:none}}
+@media(min-width:900px){.drawer{top:0;right:0;bottom:0;width:420px;transform:translateX(105%)}.drawer.on{transform:none}}
+.drawer h2{font-size:18px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.fg input,.fg select{width:100%;font-size:16px}
+.two{display:flex;gap:10px}.two .fg{flex:1}
+.laws{display:flex;gap:8px}
+.law{flex:1;text-align:center;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--s2);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;transition:.2s}
+.law.on{border-color:var(--info);color:var(--info);background:rgba(94,162,255,.1)}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--s2);color:var(--text);font-size:18px;cursor:pointer}
+.stepper b{min-width:36px;text-align:center;font-size:16px}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:320px}
+.toast{background:var(--s3);border:1px solid var(--line2);border-left:3px solid var(--ok);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:vin .25s ease}
+.toast.err{border-left-color:var(--danger)}.toast.info{border-left-color:var(--info)}
+.snack{position:fixed;left:50%;transform:translateX(-50%) translateY(140%);bottom:calc(84px + var(--safe-b));z-index:210;display:flex;align-items:center;gap:14px;background:var(--s3);border:1px solid var(--line2);border-radius:14px;padding:12px 16px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .3s}
+.snack.on{transform:translateX(-50%) translateY(0)}
+.snack button{background:none;border:none;color:var(--cyan);font-weight:800;font-size:13px;cursor:pointer}
+.bulkbar{display:none;align-items:center;gap:10px;background:var(--s3);border:1px solid var(--line2);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700}
+.bulkbar.on{display:flex}
+.hist{display:flex;gap:12px;align-items:flex-start}
+.hist .when{flex:none;width:86px;font-size:11px;color:var(--dim);font-weight:700;padding-top:2px}
+.hist .body{flex:1;min-width:0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 Мониторинг Закупок</h1>
-        <p>Управляйте подписками и получайте уведомления</p>
+<div class="app">
+  <div class="top">
+    <div class="brand"><div class="radar"></div><div><h1>ЗАКУПКИ·<span>РАДАР</span></h1><small>мониторинг госзакупок в реальном времени</small></div></div>
+    <span class="chip" id="modeChip"><span class="dot"></span><span id="modeTxt">LIVE</span></span>
+    <div class="avatar" id="avatar">?</div>
+  </div>
+  <div class="stats">
+    <div class="stat c1"><b id="stActive">0</b><span>активных</span></div>
+    <div class="stat c2"><b id="stFound">0</b><span>найдено сегодня</span></div>
+    <div class="stat c3"><b id="stFav">0</b><span>в избранном</span></div>
+    <div class="stat c4"><b id="stNext">—</b><span>след. проверка</span></div>
+  </div>
+  <div class="rail" id="rail"></div>
+  <section class="view on" id="v-subs">
+    <div class="toolbar">
+      <div class="searchbox">🔎<input id="flt" placeholder="Фильтр по слову или региону…"></div>
+      <select id="sortSel"><option value="pos">По порядку</option><option value="new">Сначала новые</option><option value="kw">По алфавиту</option><option value="price">По цене</option></select>
+      <select id="viewSel"><option value="all">Все</option><option value="active">Активные</option><option value="paused">На паузе</option><option value="44">44-ФЗ</option><option value="223">223-ФЗ</option></select>
+      <button class="btn ghost sm" id="bulkBtn">☑ Выбрать</button>
+      <button class="btn" id="newBtn">＋ Подписка</button>
     </div>
-
-    <div class="tabs">
-        <div class="tab active" data-tab="add" onclick="switchTab('add')">➕ Добавить</div>
-        <div class="tab" data-tab="list" onclick="switchTab('list')">📋 Подписки</div>
-        <div class="tab" data-tab="favorites" onclick="switchTab('favorites')">⭐ Избранное</div>
-        <div class="tab" data-tab="history" onclick="switchTab('history')">📜 История</div>
-        <div class="tab" data-tab="search" onclick="switchTab('search')">🚀 Поиск</div>
+    <div class="bulkbar" id="bulkbar"><span id="bulkCount">0 выбрано</span><button class="btn danger sm" id="bulkDel">🗑 Удалить выбранные</button><button class="btn ghost sm" id="bulkCancel">Отмена</button></div>
+    <div id="subsList"></div>
+  </section>
+  <section class="view" id="v-search">
+    <div class="card">
+      <div class="fg"><label>Область поиска</label><select id="scopeSel" style="width:100%"><option value="">Все активные подписки</option></select></div>
+      <div class="fg"><label>Количество результатов на подписку</label><div class="stepper"><button id="limMinus">−</button><b id="limVal">5</b><button id="limPlus">＋</button></div></div>
+      <button class="btn" id="runBtn" style="width:100%">📡 Запустить поиск</button>
+      <p class="meta" style="margin-top:10px">Результаты появятся здесь и будут отправлены в чат.</p>
     </div>
+    <div id="searchResults"></div>
+  </section>
+  <section class="view" id="v-fav"><div id="favList"></div></section>
+  <section class="view" id="v-hist">
+    <div class="toolbar"><button class="btn danger sm" id="clearHist">🗑 Очистить историю</button></div>
+    <div id="histList"></div>
+  </section>
+</div>
+<nav class="tabbar" id="tabbar"></nav>
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer"></div>
+<div class="toasts" id="toasts"></div>
+<div class="snack" id="snack"><span id="snackTxt"></span><button id="snackAct">Отменить</button></div>
 
-    <!-- Вкладка: Добавить -->
-    <div id="add" class="view active">
-        <div class="card">
-            <div class="form-group">
-                <label>Ключевое слово</label>
-                <input type="text" id="keyword" placeholder="Например: бумага офисная" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>Тип закона</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-item active" onclick="toggleCheck(this, 'fz44')">
-                        <input type="checkbox" id="fz44" checked> 44-ФЗ
-                    </label>
-                    <label class="checkbox-item active" onclick="toggleCheck(this, 'fz223')">
-                        <input type="checkbox" id="fz223" checked> 223-ФЗ
-                    </label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Регион (необязательно)</label>
-                <input type="text" id="region" placeholder="Например: Москва" autocomplete="off">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label>Цена от (₽)</label>
-                    <input type="number" id="min_price" placeholder="0" inputmode="numeric">
-                </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label>Цена до (₽)</label>
-                    <input type="number" id="max_price" placeholder="∞" inputmode="numeric">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Время уведомлений</label>
-                <select id="notify_time">
-                    <option value="both">Утром и вечером (2 раза в день)</option>
-                    <option value="morning">Только утром (9:00)</option>
-                    <option value="evening">Только вечером (18:00)</option>
-                </select>
-            </div>
-        </div>
-        <button class="btn" onclick="saveSubscription()">💾 Создать подписку</button>
-    </div>
+<script>
+"use strict";
+/* ===== ВСТАВЬТЕ СВОИ ДАННЫЕ SUPABASE ===== */
+const SUPABASE_URL = "https://yfjjqbbmuicglefwfgxn.supabase.co";
+const SUPABASE_KEY = "sb_secret_oFiczmJULoN-JMtzNehFMQ_0KShXINF";
+/* ======================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const tg=window.Telegram&&window.Telegram.WebApp;
+const inTG=!!(tg&&tg.initData);
+if(tg){tg.ready();tg.expand();}
+const CID=inTG?tg.initDataUnsafe.user.id:0;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtMoney=n=>Number(n||0).toLocaleString("ru-RU");
+const S={mode:inTG?"live":"demo",user:inTG?(tg.initDataUnsafe.user||{first_name:"Гость"}):{first_name:"Демо"},subs:[],favs:[],history:[],results:[],view:"subs",filter:"",sort:"pos",saved:"all",bulk:false,sel:new Set(),limit:5,undo:null};
 
-    <!-- Вкладка: Подписки -->
-    <div id="list" class="view">
-        <div id="subs-container"></div>
-    </div>
+/* ---- Supabase adapter ---- */
+const SB={async req(path,method="GET",body,prefer){const h={apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};if(prefer)h.Prefer=prefer;
+  const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(!r.ok)throw new Error("SB "+r.status);const t=await r.text();return t?JSON.parse(t):null;}};
+const Live={
+  state:async()=>({subs:await SB.req(`subs?chat_id=eq.${CID}&order=position.asc,id.asc`)||[],favs:await SB.req(`favorites?chat_id=eq.${CID}&order=added_at.desc`)||[],history:await SB.req(`history?chat_id=eq.${CID}&order=id.desc&limit=50`)||[]}),
+  create:b=>SB.req("subs","POST",{...b,chat_id:CID},"return=representation").then(r=>r[0]),
+  update:(id,b)=>SB.req(`subs?id=eq.${id}`,"PATCH",b),
+  remove:ids=>SB.req(`subs?id=in.(${ids.join(",")})`,"DELETE"),
+  pause:(id,p)=>SB.req(`subs?id=eq.${id}`,"PATCH",{is_paused:p}),
+  reorder:async ids=>{for(let i=0;i<ids.length;i++)await SB.req(`subs?id=eq.${ids[i]}`,"PATCH",{position:i});},
+  addFav:z=>SB.req("favorites","POST",{chat_id:CID,reg_number:z.reg_number,title:z.title||"",price:z.price||"",region:z.region||"",link:z.link||"",deadline:z.deadline||"",customer:z.customer||""},"resolution=merge-duplicates"),
+  delFav:reg=>SB.req(`favorites?chat_id=eq.${CID}&reg_number=eq.${reg}`,"DELETE"),
+  clearHist:()=>SB.req(`history?chat_id=eq.${CID}`,"DELETE"),
+  search:async(limit,subId)=>{const j=(await SB.req("jobs","POST",{chat_id:CID,limit_count:limit,sub_id:subId||null,status:"pending"},"return=representation"))[0];
+    for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,1200));const row=(await SB.req(`jobs?id=eq.${j.id}&select=status,results`))[0];
+      if(row&&row.status==="done")return{results:row.results||[],found:(row.results||[]).length};}
+    throw new Error("timeout");}
+};
+/* ---- Demo adapter (просмотр вне Telegram) ---- */
+const DK="radar_demo_v2";
+function dSeed(){const n=Date.now();return{subs:[
+ {id:1,keyword:"бумага офисная",fz44:true,fz223:false,region:"Москва",min_price:0,max_price:500000,is_paused:false,notify_time:"both",per_check:5,position:0,created_at:new Date(n-5e8).toISOString()},
+ {id:2,keyword:"канцелярские товары",fz44:true,fz223:true,region:"Санкт-Петербург",min_price:10000,max_price:0,is_paused:false,notify_time:"morning",per_check:5,position:1,created_at:new Date(n-3e8).toISOString()},
+ {id:3,keyword:"посадка деревьев",fz44:true,fz223:false,region:"Московская область",min_price:0,max_price:0,is_paused:true,notify_time:"evening",per_check:3,position:2,created_at:new Date(n-2e8).toISOString()},
+ {id:4,keyword:"ИТ услуги",fz44:false,fz223:true,region:"",min_price:100000,max_price:5000000,is_paused:false,notify_time:"both",per_check:10,position:3,created_at:new Date(n-1e8).toISOString()}],
+ favs:[{reg_number:"0373200041126000745",title:"Поставка канцелярских товаров для нужд ОПОП района Некрасовка",price:"197 108,73 ₽",region:"Москва",link:"https://zakupki.gov.ru/",deadline:"20.11.2026 09:00",customer:"ГБУ «Жилищник района Некрасовка»",added_at:new Date(n-18e6).toISOString()}],
+ history:[{id:1,query:"бумага офисная, канцелярские товары",limit_count:5,found_count:7,searched_at:new Date(n-108e5).toISOString()},{id:2,query:"ИТ услуги",limit_count:10,found_count:4,searched_at:new Date(n-864e5).toISOString()}]};}
+function dLoad(){try{const d=JSON.parse(localStorage.getItem(DK));if(d&&d.subs)return d;}catch(e){}const d=dSeed();localStorage.setItem(DK,JSON.stringify(d));return d;}
+function dSave(d){localStorage.setItem(DK,JSON.stringify(d));}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const Demo={
+  state:async()=>{await wait(200);const d=dLoad();return{subs:d.subs,favs:d.favs,history:d.history};},
+  create:async b=>{await wait(150);const d=dLoad();const s={...b,id:Date.now(),position:d.subs.length,created_at:new Date().toISOString()};d.subs.push(s);dSave(d);return s;},
+  update:async(id,b)=>{await wait(120);const d=dLoad();const i=d.subs.findIndex(s=>s.id==id);if(i>-1)d.subs[i]={...d.subs[i],...b};dSave(d);},
+  remove:async ids=>{await wait(120);const d=dLoad();d.subs=d.subs.filter(s=>!ids.includes(s.id));dSave(d);},
+  pause:async(id,p)=>{await wait(100);const d=dLoad();const s=d.subs.find(s=>s.id==id);if(s)s.is_paused=p;dSave(d);},
+  reorder:async ids=>{await wait(100);const d=dLoad();ids.forEach((id,i)=>{const s=d.subs.find(x=>x.id==id);if(s)s.position=i;});dSave(d);},
+  addFav:async z=>{await wait(100);const d=dLoad();if(!d.favs.find(f=>f.reg_number===z.reg_number))d.favs.unshift({...z,added_at:new Date().toISOString()});dSave(d);},
+  delFav:async reg=>{await wait(100);const d=dLoad();d.favs=d.favs.filter(f=>f.reg_number!==reg);dSave(d);},
+  clearHist:async()=>{await wait(100);const d=dLoad();d.history=[];dSave(d);},
+  search:async(limit,subId)=>{await wait(900);const d=dLoad();const subs=subId?d.subs.filter(s=>s.id==subId):d.subs.filter(s=>!s.is_paused);
+    const cust=["ГБУ «Жилищник»","МКУ «Центр закупок»","ФГБУ «Наука»","АО «Гортранс»"];const regs=["Москва","Санкт-Петербург","Московская обл","Самарская обл"];const out=[];
+    subs.forEach((s,si)=>{for(let i=0;i<Math.min(limit,3+si);i++){const days=2+((si*3+i*5)%18);const dl=new Date(Date.now()+days*864e5);const price=Math.round((30000+((si+1)*(i+2)*47000)%1900000)*100)/100;
+      out.push({reg_number:String(373200041126000745+si*1000+i),title:`Поставка: ${s.keyword} для нужд ${cust[(si+i)%cust.length]} (лот ${i+1})`,price:price.toLocaleString("ru-RU",{minimumFractionDigits:2})+" ₽",region:s.region||regs[(si+i)%regs.length],deadline:`${String(dl.getDate()).padStart(2,"0")}.${String(dl.getMonth()+1).padStart(2,"0")}.${dl.getFullYear()} 09:00`,customer:cust[(si+i)%cust.length],link:"https://zakupki.gov.ru/",sub_id:s.id,keyword:s.keyword});}});
+    d.history.unshift({id:Date.now(),query:subs.map(s=>s.keyword).join(", ")||"—",limit_count:limit,found_count:out.length,searched_at:new Date().toISOString()});dSave(d);return{results:out,found:out.length};}
+};
+const API=()=>S.mode==="live"?Live:Demo;
 
-    <!-- Вкладка: Избранное -->
-    <div id="favorites" class="view">
-        <div id="favorites-container"></div>
-    </div>
-
-    <!-- Вкладка: История -->
-    <div id="history" class="view">
-        <div id="history-container"></div>
-        <button class="btn btn-secondary" onclick="clearHistory()" style="margin-top: 10px;">🗑 Очистить историю</button>
-    </div>
-
-    <!-- Вкладка: Поиск -->
-    <div id="search" class="view">
-        <div class="card">
-            <p style="color: var(--hint); font-size: 14px; text-align: center; line-height: 1.5; margin-bottom: 16px;">
-                Запустить ручной поиск по всем вашим подпискам. Результаты придут в чат.
-            </p>
-            <div class="search-controls">
-                <input type="number" id="search_limit" value="5" min="1" max="50" inputmode="numeric">
-                <button class="btn" onclick="runSearch()">🔍 Найти</button>
-            </div>
-        </div>
-        <div class="card">
-            <p style="font-size: 13px; color: var(--hint); line-height: 1.5;">
-                💡 <b>Совет:</b> Бот автоматически проверяет новые закупки согласно настройкам времени уведомлений.
-            </p>
-        </div>
-    </div>
-
-    <!-- Модалка редактирования -->
-    <div class="modal-overlay" id="edit-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>✏️ Редактировать подписку</h2>
-                <button class="modal-close" onclick="closeEditModal()">✕</button>
-            </div>
-            <input type="hidden" id="edit_id">
-            <div class="form-group">
-                <label>Ключевое слово</label>
-                <input type="text" id="edit_keyword" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>Тип закона</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-item" id="edit_fz44_label" onclick="toggleCheck(this, 'edit_fz44')">
-                        <input type="checkbox" id="edit_fz44"> 44-ФЗ
-                    </label>
-                    <label class="checkbox-item" id="edit_fz223_label" onclick="toggleCheck(this, 'edit_fz223')">
-                        <input type="checkbox" id="edit_fz223"> 223-ФЗ
-                    </label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Регион</label>
-                <input type="text" id="edit_region" autocomplete="off">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label>Цена от (₽)</label>
-                    <input type="number" id="edit_min_price" inputmode="numeric">
-                </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label>Цена до (₽)</label>
-                    <input type="number" id="edit_max_price" inputmode="numeric">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Время уведомлений</label>
-                <select id="edit_notify_time">
-                    <option value="both">Утром и вечером</option>
-                    <option value="morning">Только утром</option>
-                    <option value="evening">Только вечером</option>
-                </select>
-            </div>
-            <button class="btn" onclick="saveEdit()">💾 Сохранить изменения</button>
-        </div>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
-        let localSubs = JSON.parse(localStorage.getItem('subscriptions') || '[]');
-        let localFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
-        let localHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
-
-        function showToast(message, duration = 2000) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), duration);
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-
-            if (tabId === 'list') renderSubscriptions();
-            if (tabId === 'favorites') renderFavorites();
-            if (tabId === 'history') renderHistory();
-        }
-
-        function toggleCheck(el, id) {
-            const cb = document.getElementById(id);
-            cb.checked = !cb.checked;
-            el.classList.toggle('active', cb.checked);
-        }
-
-        function saveSubscription() {
-            const keyword = document.getElementById('keyword').value.trim();
-            if (!keyword) { showToast("⚠️ Введите ключевое слово!"); return; }
-
-            const newSub = {
-                id: Date.now(),
-                keyword,
-                fz44: document.getElementById('fz44').checked,
-                fz223: document.getElementById('fz223').checked,
-                region: document.getElementById('region').value.trim(),
-                min_price: parseFloat(document.getElementById('min_price').value) || 0,
-                max_price: parseFloat(document.getElementById('max_price').value) || 9999999999,
-                notify_time: document.getElementById('notify_time').value,
-                is_paused: false,
-                created_at: new Date().toISOString()
-            };
-
-            localSubs.push(newSub);
-            localStorage.setItem('subscriptions', JSON.stringify(localSubs));
-
-            tg.sendData(JSON.stringify({ action: 'save', ...newSub }));
-            
-            document.getElementById('keyword').value = '';
-            document.getElementById('region').value = '';
-            document.getElementById('min_price').value = '';
-            document.getElementById('max_price').value = '';
-            
-            showToast("✅ Подписка создана!");
-            switchTab('list');
-        }
-
-        function renderSubscriptions() {
-            const container = document.getElementById('subs-container');
-            if (localSubs.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>У вас пока нет подписок.<br>Добавьте первую на вкладке «Добавить»</p></div>';
-                return;
-            }
-            container.innerHTML = localSubs.map(sub => `
-                <div class="sub-item ${sub.is_paused ? 'paused' : ''}">
-                    <div class="sub-header">
-                        <div class="sub-keyword">🔑 ${sub.keyword}</div>
-                        <div class="sub-actions">
-                            <button class="btn btn-icon btn-secondary" onclick='openEditModal(${JSON.stringify(sub).replace(/'/g, "\\'")})'>✏️</button>
-                            <button class="btn btn-icon btn-secondary" onclick="togglePause(${sub.id})">${sub.is_paused ? '▶️' : '⏸️'}</button>
-                            <button class="btn btn-icon btn-danger" onclick="deleteSubscription(${sub.id})">🗑</button>
-                        </div>
-                    </div>
-                    <div class="sub-details">
-                        ${sub.fz44 ? '44-ФЗ ' : ''}${sub.fz223 ? '223-ФЗ' : ''}
-                        ${sub.region ? '• 📍 ' + sub.region : ''}
-                        ${sub.min_price > 0 ? '• 💰 от ' + sub.min_price.toLocaleString() : ''}
-                        ${sub.max_price < 9999999999 ? ' до ' + sub.max_price.toLocaleString() : ''}
-                    </div>
-                    <div class="sub-status ${sub.is_paused ? 'paused' : 'active'}">
-                        ${sub.is_paused ? '⏸ На паузе' : '✅ Активна'} • ${getNotifyText(sub.notify_time)}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openEditModal(sub) {
-            document.getElementById('edit_id').value = sub.id;
-            document.getElementById('edit_keyword').value = sub.keyword;
-            document.getElementById('edit_region').value = sub.region || '';
-            document.getElementById('edit_min_price').value = sub.min_price || '';
-            document.getElementById('edit_max_price').value = sub.max_price || '';
-            document.getElementById('edit_notify_time').value = sub.notify_time || 'both';
-
-            const fz44 = document.getElementById('edit_fz44');
-            const fz223 = document.getElementById('edit_fz223');
-            fz44.checked = sub.fz44;
-            fz223.checked = sub.fz223;
-            document.getElementById('edit_fz44_label').classList.toggle('active', fz44.checked);
-            document.getElementById('edit_fz223_label').classList.toggle('active', fz223.checked);
-
-            document.getElementById('edit-modal').classList.add('active');
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-modal').classList.remove('active');
-        }
-
-        function saveEdit() {
-            const id = parseInt(document.getElementById('edit_id').value);
-            const index = localSubs.findIndex(s => s.id === id);
-            if (index === -1) return;
-
-            localSubs[index] = {
-                ...localSubs[index],
-                keyword: document.getElementById('edit_keyword').value.trim(),
-                fz44: document.getElementById('edit_fz44').checked,
-                fz223: document.getElementById('edit_fz223').checked,
-                region: document.getElementById('edit_region').value.trim(),
-                min_price: parseFloat(document.getElementById('edit_min_price').value) || 0,
-                max_price: parseFloat(document.getElementById('edit_max_price').value) || 9999999999,
-                notify_time: document.getElementById('edit_notify_time').value
-            };
-
-            localStorage.setItem('subscriptions', JSON.stringify(localSubs));
-            tg.sendData(JSON.stringify({ action: 'edit', ...localSubs[index] }));
-            closeEditModal();
-            showToast("✅ Изменения сохранены!");
-            renderSubscriptions();
-        }
-
-        function togglePause(id) {
-            const sub = localSubs.find(s => s.id === id);
-            if (sub) {
-                sub.is_paused = !sub.is_paused;
-                localStorage.setItem('subscriptions', JSON.stringify(localSubs));
-                tg.sendData(JSON.stringify({ action: 'toggle_pause', id, pause: sub.is_paused }));
-                showToast(sub.is_paused ? "⏸ Подписка на паузе" : "▶️ Подписка активирована");
-                renderSubscriptions();
-            }
-        }
-
-        function deleteSubscription(id) {
-            tg.showConfirm(`Удалить подписку?`, (confirm) => {
-                if (confirm) {
-                    localSubs = localSubs.filter(s => s.id !== id);
-                    localStorage.setItem('subscriptions', JSON.stringify(localSubs));
-                    tg.sendData(JSON.stringify({ action: 'delete', id }));
-                    showToast("🗑 Подписка удалена");
-                    renderSubscriptions();
-                }
-            });
-        }
-
-        function runSearch() {
-            const limit = parseInt(document.getElementById('search_limit').value) || 5;
-            if (limit < 1 || limit > 50) { showToast("Введите число от 1 до 50"); return; }
-            
-            const searchRecord = {
-                date: new Date().toISOString(),
-                limit,
-                query: `Поиск по ${localSubs.length} подпискам`
-            };
-            localHistory.unshift(searchRecord);
-            localStorage.setItem('search_history', JSON.stringify(localHistory.slice(0, 50)));
-            
-            tg.sendData(JSON.stringify({ action: 'search', limit }));
-            showToast("🔍 Поиск запущен! Результаты в чате");
-        }
-
-        function removeFromFavorites(regNumber) {
-            localFavs = localFavs.filter(f => f.reg_number !== regNumber);
-            localStorage.setItem('favorites', JSON.stringify(localFavs));
-            renderFavorites();
-            showToast("Удалено из избранного");
-        }
-
-        function renderFavorites() {
-            const container = document.getElementById('favorites-container');
-            if (localFavs.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div><p>Добавляйте интересные закупки в избранное<br>нажатием кнопки ⭐ в чате</p></div>';
-                return;
-            }
-            container.innerHTML = localFavs.map(f => `
-                <div class="fav-item">
-                    <div class="fav-title">№ ${f.reg_number}</div>
-                    <div class="fav-meta">${f.title || 'Без названия'}</div>
-                    <div class="fav-meta">💰 ${f.price || 'Не указана'} | 📍 ${f.region || 'Не указан'}</div>
-                    <a href="${f.link}" target="_blank" class="fav-link">🔗 Открыть закупку</a>
-                    <button class="btn btn-danger btn-icon" style="float: right;" onclick="removeFromFavorites('${f.reg_number}')">🗑</button>
-                </div>
-            `).join('');
-        }
-
-        function renderHistory() {
-            const container = document.getElementById('history-container');
-            if (localHistory.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><p>История поиска пуста</p></div>';
-                return;
-            }
-            container.innerHTML = localHistory.map(h => `
-                <div class="history-item">
-                    <div class="history-title">🔍 ${h.query}</div>
-                    <div class="history-meta">📅 ${new Date(h.date).toLocaleString('ru-RU')} • Лимит: ${h.limit}</div>
-                </div>
-            `).join('');
-        }
-
-        function clearHistory() {
-            tg.showConfirm(`Очистить всю историю поиска?`, (confirm) => {
-                if (confirm) {
-                    localHistory = [];
-                    localStorage.setItem('search_history', JSON.stringify(localHistory));
-                    renderHistory();
-                    showToast("История очищена");
-                }
-            });
-        }
-
-        function getNotifyText(time) {
-            const map = { 'morning': '🌅 Утро', 'evening': '🌆 Вечер', 'both': '🌅🌆 2 раза' };
-            return map[time] || '🌅🌆 2 раза';
-        }
-
-        renderSubscriptions();
-        renderFavorites();
-        renderHistory();
-    </script>
+/* ---- ui ---- */
+function toast(m,t="ok"){const e=document.createElement("div");e.className="toast "+(t==="ok"?"":t);e.textContent=m;$("#toasts").appendChild(e);setTimeout(()=>{e.style.opacity="0";setTimeout(()=>e.remove(),300);},2600);}
+let st=null;function snack(m,fn){$("#snackTxt").textContent=m;S.undo=fn;$("#snack").classList.add("on");clearTimeout(st);st=setTimeout(()=>$("#snack").classList.remove("on"),6000);}
+$("#snackAct").onclick=()=>{if(S.undo)S.undo();S.undo=null;$("#snack").classList.remove("on");};
+function openDrawer(h){$("#drawer").innerHTML=h;$("#drawer").classList.add("on");$("#scrim").classList.add("on");}
+function closeDrawer(){$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");}
+$("#scrim").onclick=closeDrawer;window.closeDrawer=closeDrawer;
+const TABS=[["subs","📋","Подписки"],["search","📡","Поиск"],["fav","⭐","Избранное"],["hist","🕘","История"]];
+function buildNav(){$("#tabbar").innerHTML=TABS.map(t=>`<button data-v="${t[0]}" class="${S.view===t[0]?"on":""}"><i>${t[1]}</i>${t[2]}</button>`).join("");
+ $("#rail").innerHTML=TABS.map(t=>`<button data-v="${t[0]}" class="${S.view===t[0]?"on":""}" title="${t[2]}">${t[1]}</button>`).join("");
+ $$("#tabbar button,#rail button").forEach(b=>b.onclick=()=>{S.view=b.dataset.v;render();});}
+function render(){buildNav();$$(".view").forEach(v=>v.classList.remove("on"));$("#v-"+S.view).classList.add("on");
+ $("#stActive").textContent=S.subs.filter(s=>!s.is_paused).length;$("#stFav").textContent=S.favs.length;
+ const td=new Date().toDateString();$("#stFound").textContent=S.history.filter(h=>new Date(h.searched_at).toDateString()===td).reduce((a,h)=>a+(h.found_count||0),0);
+ const h=new Date().getHours();$("#stNext").textContent=h<9?"09:00":h<18?"18:00":"09:00";
+ if(S.view==="subs")renderSubs();if(S.view==="search")renderSearch();if(S.view==="fav")renderFavs();if(S.view==="hist")renderHist();}
+function filteredSubs(){let l=[...S.subs];
+ if(S.saved==="active")l=l.filter(s=>!s.is_paused);if(S.saved==="paused")l=l.filter(s=>s.is_paused);
+ if(S.saved==="44")l=l.filter(s=>s.fz44);if(S.saved==="223")l=l.filter(s=>s.fz223);
+ if(S.filter){const f=S.filter.toLowerCase();l=l.filter(s=>(s.keyword+" "+s.region).toLowerCase().includes(f));}
+ if(S.sort==="new")l.sort((a,b)=>b.id-a.id);if(S.sort==="kw")l.sort((a,b)=>a.keyword.localeCompare(b.keyword,"ru"));
+ if(S.sort==="price")l.sort((a,b)=>(b.max_price||0)-(a.max_price||0));if(S.sort==="pos")l.sort((a,b)=>(a.position||0)-(b.position||0));return l;}
+function subCard(s,i){const tags=[s.fz44?'<span class="tag law">44-ФЗ</span>':"",s.fz223?'<span class="tag law">223-ФЗ</span>':"",
+ s.region?`<span class="tag reg">📍 ${esc(s.region)}</span>`:"",(s.min_price||(s.max_price&&s.max_price<9999999999))?`<span class="tag price">💰 ${s.min_price?fmtMoney(s.min_price):"0"} – ${s.max_price&&s.max_price<9999999999?fmtMoney(s.max_price):"∞"} ₽</span>`:"",
+ `<span class="tag time">${{both:"🌅🌆 2 раза",morning:"🌅 утро",evening:"🌆 вечер"}[s.notify_time]||"🌅🌆"}</span>`].join("");
+ return `<div class="card ${s.is_paused?"paused":""} ${S.sel.has(s.id)?"sel":""}" draggable="${S.sort==="pos"&&!S.bulk}" data-id="${s.id}" style="animation-delay:${i*40}ms">
+ <div class="row1">${S.bulk?`<input type="checkbox" class="check" data-id="${s.id}" ${S.sel.has(s.id)?"checked":""}>`:""}<div class="kw">🔑 ${esc(s.keyword)}</div>
+ <div class="acts"><button class="btn ghost icon" data-act="edit" data-id="${s.id}">✏️</button><button class="btn ghost icon" data-act="pause" data-id="${s.id}">${s.is_paused?"▶️":"⏸️"}</button><button class="btn danger icon" data-act="del" data-id="${s.id}">🗑</button></div></div>
+ <div class="tags">${tags}</div><div class="statusline"><span class="pill ${s.is_paused?"off":"on"}">${s.is_paused?"⏸ на паузе":"● активна"}</span><span class="meta">до ${s.per_check||5} закупок за проверку</span></div></div>`;}
+function renderSubs(){const l=filteredSubs();
+ $("#subsList").innerHTML=l.length?l.map(subCard).join(""):`<div class="empty"><div class="ico">📭</div><p>Подписок пока нет.<br>Нажмите «＋ Подписка».</p></div>`;
+ $("#bulkbar").classList.toggle("on",S.bulk);$("#bulkCount").textContent=S.sel.size+" выбрано";
+ $$("#subsList [data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=+b.dataset.id;
+  if(b.dataset.act==="edit")openSubDrawer(S.subs.find(s=>s.id===id));
+  if(b.dataset.act==="pause")doPause(id);if(b.dataset.act==="del")doDelete([id]);});
+ $$("#subsList .check").forEach(c=>c.onchange=()=>{const id=+c.dataset.id;c.checked?S.sel.add(id):S.sel.delete(id);renderSubs();});
+ $$("#subsList .card").forEach(card=>{card.ondragstart=e=>e.dataTransfer.setData("text/plain",card.dataset.id);
+  card.ondragover=e=>e.preventDefault();
+  card.ondrop=async e=>{e.preventDefault();const from=+e.dataTransfer.getData("text/plain"),to=+card.dataset.id;if(from===to)return;
+   const ids=filteredSubs().map(s=>s.id);const a=ids.indexOf(from),b=ids.indexOf(to);ids.splice(a,1);ids.splice(b,0,from);
+   S.subs.sort((x,y)=>ids.indexOf(x.id)-ids.indexOf(y.id));S.subs.forEach((s,i)=>s.position=i);renderSubs();
+   try{await API().reorder(ids);}catch(err){toast("Не удалось сохранить порядок","err");}};});}
+$("#flt").oninput=e=>{S.filter=e.target.value;renderSubs();};
+$("#sortSel").onchange=e=>{S.sort=e.target.value;renderSubs();};
+$("#viewSel").onchange=e=>{S.saved=e.target.value;renderSubs();};
+$("#bulkBtn").onclick=()=>{S.bulk=!S.bulk;S.sel.clear();renderSubs();};
+$("#bulkCancel").onclick=()=>{S.bulk=false;S.sel.clear();renderSubs();};
+$("#bulkDel").onclick=()=>doDelete([...S.sel]);
+$("#newBtn").onclick=()=>openSubDrawer(null);
+async function doPause(id){const s=S.subs.find(x=>x.id===id);if(!s)return;const old=s.is_paused;s.is_paused=!old;render();
+ try{await API().pause(id,s.is_paused);toast(s.is_paused?"⏸ На паузе":"▶️ Активна");}catch(e){s.is_paused=old;render();toast("Ошибка","err");}}
+async function doDelete(ids){if(!ids.length)return;const removed=S.subs.filter(s=>ids.includes(s.id));
+ S.subs=S.subs.filter(s=>!ids.includes(s.id));S.sel.clear();S.bulk=false;render();
+ snack(`Удалено: ${removed.length}`,async()=>{S.subs.push(...removed);render();try{for(const r of removed)await API().create(r);}catch(e){}});
+ try{await API().remove(ids);toast("🗑 Удалено");}catch(e){S.subs.push(...removed);render();toast("Ошибка удаления","err");}}
+function openSubDrawer(s){const isEdit=!!s;s=s||{keyword:"",fz44:true,fz223:true,region:"",min_price:0,max_price:0,notify_time:"both",per_check:5};
+ openDrawer(`<h2>${isEdit?"✏️ Редактирование":"＋ Новая подписка"}<button class="btn ghost icon" onclick="closeDrawer()">✕</button></h2>
+ <div class="fg"><label>Ключевое слово *</label><input type="text" id="dKw" value="${esc(s.keyword)}" placeholder="например: бумага офисная"></div>
+ <div class="fg"><label>Законы</label><div class="laws"><div class="law ${s.fz44?"on":""}" id="dL44">44-ФЗ</div><div class="law ${s.fz223?"on":""}" id="dL223">223-ФЗ</div></div></div>
+ <div class="fg"><label>Регион</label><input type="text" id="dReg" list="regs" value="${esc(s.region)}" placeholder="Москва, Самарская область…"><datalist id="regs"><option>Москва</option><option>Московская область</option><option>Санкт-Петербург</option><option>Самарская область</option><option>Краснодарский край</option><option>Свердловская область</option><option>Новосибирская область</option><option>Татарстан</option><option>Ростовская область</option><option>Нижегородская область</option></datalist></div>
+ <div class="two"><div class="fg"><label>Цена от, ₽</label><input type="number" id="dMin" value="${s.min_price||""}" placeholder="0"></div><div class="fg"><label>Цена до, ₽</label><input type="number" id="dMax" value="${s.max_price&&s.max_price<9999999999?s.max_price:""}" placeholder="∞"></div></div>
+ <div class="fg"><label>Уведомления</label><select id="dNt" style="width:100%"><option value="both" ${s.notify_time==="both"?"selected":""}>Утром и вечером</option><option value="morning" ${s.notify_time==="morning"?"selected":""}>Только утром (09:00)</option><option value="evening" ${s.notify_time==="evening"?"selected":""}>Только вечером (18:00)</option></select></div>
+ <div class="fg"><label>Закупок за одну проверку</label><div class="stepper"><button id="dMinus">−</button><b id="dPer">${s.per_check||5}</b><button id="dPlus">＋</button></div></div>
+ <button class="btn" id="dSave" style="width:100%">💾 ${isEdit?"Сохранить изменения":"Создать подписку"}</button>
+ ${isEdit?`<button class="btn danger" id="dDel" style="width:100%;margin-top:8px">🗑 Удалить подписку</button>`:""}`);
+ $("#dL44").onclick=()=>$("#dL44").classList.toggle("on");$("#dL223").onclick=()=>$("#dL223").classList.toggle("on");
+ let per=s.per_check||5;$("#dMinus").onclick=()=>{per=Math.max(1,per-1);$("#dPer").textContent=per;};$("#dPlus").onclick=()=>{per=Math.min(50,per+1);$("#dPer").textContent=per;};
+ $("#dSave").onclick=async()=>{const kw=$("#dKw").value.trim();if(!kw){toast("Введите ключевое слово","err");return;}
+  if(!$("#dL44").classList.contains("on")&&!$("#dL223").classList.contains("on")){toast("Выберите хотя бы один закон","err");return;}
+  const body={keyword:kw,fz44:$("#dL44").classList.contains("on"),fz223:$("#dL223").classList.contains("on"),region:$("#dReg").value.trim(),min_price:+$("#dMin").value||0,max_price:+$("#dMax").value||0,notify_time:$("#dNt").value,per_check:per};
+  closeDrawer();
+  if(isEdit){const tgt=S.subs.find(x=>x.id===s.id);const old={...tgt};Object.assign(tgt,body);render();
+   try{await API().update(s.id,body);toast("✅ Изменения сохранены");}catch(e){Object.assign(tgt,old);render();toast("Ошибка","err");}}
+  else{const tmp={...body,id:Date.now(),is_paused:false,position:S.subs.length,created_at:new Date().toISOString()};S.subs.push(tmp);S.view="subs";render();
+   try{const real=await API().create(body);const i=S.subs.findIndex(x=>x.id===tmp.id);if(i>-1)S.subs[i]=real;render();toast("✅ Подписка создана");}
+   catch(e){S.subs=S.subs.filter(x=>x.id!==tmp.id);render();toast("Ошибка создания","err");}}};
+ if(isEdit)$("#dDel").onclick=()=>{closeDrawer();doDelete([s.id]);};}
+function renderSearch(){$("#scopeSel").innerHTML='<option value="">Все активные подписки</option>'+S.subs.filter(s=>!s.is_paused).map(s=>`<option value="${s.id}">${esc(s.keyword)}</option>`).join("");
+ $("#limVal").textContent=S.limit;
+ $("#searchResults").innerHTML=S.results.length?S.results.map(resCard).join(""):`<div class="empty"><div class="ico">📡</div><p>Запустите поиск — результаты появятся здесь и в чате.</p></div>`;bindRes();}
+$("#limMinus").onclick=()=>{S.limit=Math.max(1,S.limit-1);$("#limVal").textContent=S.limit;};
+$("#limPlus").onclick=()=>{S.limit=Math.min(50,S.limit+1);$("#limVal").textContent=S.limit;};
+$("#runBtn").onclick=async()=>{$("#runBtn").disabled=true;$("#runBtn").textContent="⏳ Сканирую ЕИС…";
+ $("#searchResults").innerHTML=`<div class="empty"><div class="ico">🛰️</div><p>Идёт поиск…</p></div>`;
+ try{const r=await API().search(S.limit,+$("#scopeSel").value||null);S.results=r.results;
+  toast(r.found?`📡 Найдено: ${r.found}. Отправлено в чат.`:"Новых закупок не найдено",r.found?"ok":"info");
+  const st=await API().state();S.history=st.history;render();}
+ catch(e){toast("Ошибка поиска","err");renderSearch();}
+ $("#runBtn").disabled=false;$("#runBtn").textContent="📡 Запустить поиск";};
+function daysLeft(dl){const m=String(dl).match(/(\d{2})\.(\d{2})\.(\d{4})/);if(!m)return null;return Math.ceil((new Date(+m[3],+m[2]-1,+m[1])-Date.now())/864e5);}
+function resCard(z,i){const dl=daysLeft(z.deadline);const cls=dl==null?"cool":dl<=3?"hot":dl<=7?"warm":"cool";const isFav=S.favs.some(f=>f.reg_number===z.reg_number);
+ return `<div class="card res" style="animation-delay:${i*40}ms"><div class="row1"><span class="tag law">№ ${esc(z.reg_number)}</span><span class="deadline ${cls}">${dl==null?"⏳ срок уточняется":dl<=0?"⚠️ сегодня последний день":"⏳ осталось "+dl+" дн."}</span><button class="star ${isFav?"on":""}" data-fav="${esc(z.reg_number)}" style="margin-left:auto">⭐</button></div>
+ <div class="title">${esc(z.title)}</div><div class="grid"><span>💰 <b>${esc(z.price)}</b></span><span>📅 <b>${esc(z.deadline)}</b></span><span>📍 <b>${esc(z.region)}</b></span><span>🏢 <b>${esc(z.customer)}</b></span></div>
+ <a class="link" href="${esc(z.link)}" target="_blank">🔗 Открыть на zakupki.gov.ru →</a></div>`;}
+function bindRes(){$$("#searchResults .star").forEach(b=>b.onclick=async()=>{const reg=b.dataset.fav;const z=S.results.find(x=>x.reg_number===reg);const has=S.favs.some(f=>f.reg_number===reg);
+ if(has){S.favs=S.favs.filter(f=>f.reg_number!==reg);b.classList.remove("on");try{await API().delFav(reg);}catch(e){}}
+ else{S.favs.unshift(z);b.classList.add("on");try{await API().addFav(z);toast("⭐ В избранном");}catch(e){}}
+ $("#stFav").textContent=S.favs.length;});}
+function renderFavs(){$("#favList").innerHTML=S.favs.length?S.favs.map((f,i)=>`<div class="card res" style="animation-delay:${i*40}ms"><div class="row1"><span class="tag law">№ ${esc(f.reg_number)}</span><button class="btn danger icon" data-rmfav="${esc(f.reg_number)}" style="margin-left:auto">🗑</button></div>
+ <div class="title">${esc(f.title||"Без названия")}</div><div class="grid"><span>💰 <b>${esc(f.price||"—")}</b></span><span>📅 <b>${esc(f.deadline||"—")}</b></span><span>📍 <b>${esc(f.region||"—")}</b></span><span>🏢 <b>${esc(f.customer||"—")}</b></span></div>
+ <a class="link" href="${esc(f.link)}" target="_blank">🔗 Открыть закупку →</a></div>`).join(""):`<div class="empty"><div class="ico">⭐</div><p>Избранное пусто.<br>Добавляйте кнопкой ⭐ в поиске или в чате.</p></div>`;
+ $$("#favList [data-rmfav]").forEach(b=>b.onclick=async()=>{const reg=b.dataset.rmfav;const removed=S.favs.find(f=>f.reg_number===reg);S.favs=S.favs.filter(f=>f.reg_number!==reg);render();
+  snack("Удалено из избранного",async()=>{S.favs.unshift(removed);render();try{await API().addFav(removed);}catch(e){}});
+  try{await API().delFav(reg);}catch(e){}});}
+function renderHist(){$("#histList").innerHTML=S.history.length?S.history.map((h,i)=>`<div class="card hist" style="animation-delay:${i*30}ms"><div class="when">${new Date(h.searched_at).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div><div class="body"><div class="kw" style="font-size:14px">🔎 ${esc(h.query)}</div><div class="meta" style="margin-top:4px">лимит ${h.limit_count} · найдено <b style="color:${h.found_count?"var(--ok)":"var(--muted)"}">${h.found_count}</b></div></div><button class="btn ghost sm" data-rerun="1">↻</button></div>`).join(""):`<div class="empty"><div class="ico">🕘</div><p>История поисков пуста.</p></div>`;
+ $$("#histList [data-rerun]").forEach(b=>b.onclick=()=>{S.view="search";render();$("#runBtn").click();});}
+$("#clearHist").onclick=async()=>{const old=[...S.history];S.history=[];render();snack("История очищена",()=>{S.history=old;render();});try{await API().clearHist();}catch(e){S.history=old;render();}};
+(async function boot(){$("#modeTxt").textContent=S.mode==="live"?"LIVE":"DEMO";$("#modeChip").classList.toggle("demo",S.mode!=="live");
+ $("#avatar").textContent=(S.user.first_name||"?")[0].toUpperCase();
+ try{const st=await API().state();S.subs=st.subs;S.favs=st.favs;S.history=st.history;}
+ catch(e){S.mode="demo";$("#modeTxt").textContent="DEMO";$("#modeChip").classList.add("demo");const st=await Demo.state();S.subs=st.subs;S.favs=st.favs;S.history=st.history;toast("Supabase недоступен — демо-режим","info");}
+ render();})();
+</script>
 </body>
 </html>
